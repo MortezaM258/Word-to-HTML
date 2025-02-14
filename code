@@ -1,0 +1,54 @@
+Sub ConvertToTextFileUTF8()
+    Dim tempFileName As String
+    Dim textFilePath As String
+    Dim htmlContent As String
+    Dim currentDirectory As String
+    Dim fileNum As Integer
+    Dim fso As Object
+    Dim textFile As Object
+
+    ' مسير دايرکتوري فعلي فايل ورد
+    currentDirectory = ActiveDocument.Path
+
+    ' اگر مسير خالي بود، به پوشه temp تغيير مي‌دهيم
+    If currentDirectory = "" Then
+        currentDirectory = Environ("TEMP")
+    End If
+
+    ' مسير فايل متني را تنظيم مي‌کنيم
+    textFilePath = currentDirectory & "\outputfile.txt"
+
+    ' ذخيره فايل به فرمت HTML
+    Application.DisplayAlerts = wdAlertsNone
+    ActiveDocument.SaveAs2 FileName:=currentDirectory & "\tempfile.html", FileFormat:=wdFormatFilteredHTML
+    Application.DisplayAlerts = wdAlertsAll
+
+    ' خواندن محتوا از فايل HTML به صورت رشته
+    On Error GoTo CleanupError
+    fileNum = FreeFile
+    Open currentDirectory & "\tempfile.html" For Input As fileNum
+    htmlContent = Input$(LOF(fileNum), fileNum)
+    Close fileNum
+
+    ' ايجاد شيء FileSystemObject براي نوشتن به فايل با رمزگذاري UTF-8
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set textFile = fso.CreateTextFile(textFilePath, True, True)  ' True براي UTF-8
+
+    ' نوشتن محتوا در فايل متني
+    textFile.Write htmlContent
+    textFile.Close
+
+    ' حذف فايل موقت HTML
+    On Error Resume Next
+    Kill currentDirectory & "\tempfile.html"
+    On Error GoTo 0
+
+    MsgBox "محتوا در فايل متني ذخيره شد: " & textFilePath, vbInformation
+    Exit Sub
+
+CleanupError:
+    MsgBox "خطا در خواندن يا نوشتن فايل: " & Err.Description, vbExclamation
+    On Error Resume Next
+    Close fileNum
+End Sub
+
